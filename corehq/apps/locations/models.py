@@ -336,6 +336,9 @@ class LocationManager(LocationQueriesMixin, TreeManager):
         users_location = user.get_sql_location(domain)
         return users_location.get_descendants(include_self=True)
 
+    def get_locations(self, location_ids):
+        return self.filter(location_id__in=location_ids)
+
     def get_locations_and_children(self, location_ids):
         """
         Takes a set of location ids and returns a django queryset of those
@@ -355,6 +358,9 @@ class OnlyUnarchivedLocationManager(LocationManager):
     def get_queryset(self):
         return (super(OnlyUnarchivedLocationManager, self).get_queryset()
                 .filter(is_archived=False))
+
+    def accessible_location_ids(self, domain, user):
+        return list(self.accessible_to_user(domain, user).location_ids())
 
 
 class SQLLocation(SyncSQLToCouchMixin, MPTTModel):
