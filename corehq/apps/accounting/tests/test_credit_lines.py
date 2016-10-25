@@ -2,6 +2,8 @@ from decimal import Decimal
 import random
 import datetime
 
+from dateutil.relativedelta import relativedelta
+
 from dimagi.utils.dates import add_months_to_date
 
 from corehq.apps.accounting import tasks, utils
@@ -309,8 +311,9 @@ class TestCreditTransfers(BaseAccountingTest):
             edition=SoftwarePlanEdition.STANDARD
         )
         first_sub = Subscription.new_domain_subscription(
-            self.account, self.domain.name, advanced_plan
-        )
+            self.account, self.domain.name, advanced_plan,
+            date_start=datetime.date.today() - relativedelta(days=1)
+        ) # must start previously
 
         product_credit = CreditLine.add_credit(
             self.product_credit_amt, subscription=first_sub,
@@ -327,14 +330,11 @@ class TestCreditTransfers(BaseAccountingTest):
             product_credit, feature_credit, subscription_credit,
         ]
 
-        second_sub = first_sub.change_plan(standard_plan)
+        second_sub = first_sub.change_plan(standard_plan, date_end=datetime.date.today() + relativedelta(days=1))
 
         second_credits = self._ensure_transfer(original_credits)
         for credit_line in second_credits:
             self.assertEqual(credit_line.subscription.pk, second_sub.pk)
-
-        second_sub.date_end = datetime.date.today() + datetime.timedelta(days=5)
-        second_sub.save()
 
         third_sub = second_sub.renew_subscription()
         deactivate_subscriptions(second_sub.date_end)
@@ -342,7 +342,7 @@ class TestCreditTransfers(BaseAccountingTest):
         for credit_line in third_credits:
             self.assertEqual(credit_line.subscription.pk, third_sub.pk)
 
-        third_sub.cancel_subscription()
+        third_sub.change_plan(DefaultProductPlan.get_default_plan()) # will need to mock dates
         account_credits = self._ensure_transfer(third_credits)
         for credit_line in account_credits:
             self.assertIsNone(credit_line.subscription)

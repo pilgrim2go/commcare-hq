@@ -107,7 +107,7 @@ class TestSubscriptionPermissionsChanges(BaseAccountingTest):
         self.assertTrue(LOGO_HOME in app_build.logo_refs.keys())
         self.assertTrue(LOGO_LOGIN in app_build.logo_refs.keys())
 
-        advanced_sub.cancel_subscription(web_user=self.admin_user.username)
+        community_sub = advanced_sub.change_plan(DefaultProductPlan.get_default_plan())
 
         app_standard = Application.get(app_standard._id)
         app_build = Application.get(app_build._id)
@@ -117,7 +117,7 @@ class TestSubscriptionPermissionsChanges(BaseAccountingTest):
         self.assertFalse(LOGO_HOME in app_build.logo_refs.keys())
         self.assertFalse(LOGO_LOGIN in app_build.logo_refs.keys())
 
-        self._subscribe_to_advanced()
+        community_sub.change_plan(DefaultProductPlan.get_default_plan(edition=SoftwarePlanEdition.ADVANCED))
 
         app_standard = Application.get(app_standard._id)
         app_build = Application.get(app_build._id)
@@ -135,7 +135,7 @@ class TestSubscriptionPermissionsChanges(BaseAccountingTest):
         # Upgrade the domain
         # (for the upgrade to work, there has to be an existing subscription,
         # which is why we subscribe to advanced first)
-        self._subscribe_to_advanced()
+        advanced_sub = self._subscribe_to_advanced()
         pro_with_rb_sub = self._subscribe_to_pro_with_rb()
 
         # Create reports and data sources
@@ -162,7 +162,7 @@ class TestSubscriptionPermissionsChanges(BaseAccountingTest):
         report_builder_report.save()
 
         # downgrade the domain
-        pro_with_rb_sub.cancel_subscription(web_user=self.admin_user.username)
+        community_sub = pro_with_rb_sub.change_plan(DefaultProductPlan.get_default_plan())
 
         # Check that the builder data source is deactivated
         builder_report_data_source = _get_data_source(builder_report_data_source._id)
@@ -174,7 +174,7 @@ class TestSubscriptionPermissionsChanges(BaseAccountingTest):
         # upgrade the domain
         # (for the upgrade to work, there has to be an existing subscription,
         # which is why we subscribe to advanced first)
-        self._subscribe_to_advanced()
+        community_sub.change_plan(DefaultProductPlan.get_default_plan(edition=SoftwarePlanEdition.ADVANCED))
         pro_with_rb_sub = self._subscribe_to_pro_with_rb()
 
         # check that the data source is activated
@@ -188,7 +188,7 @@ class TestSubscriptionPermissionsChanges(BaseAccountingTest):
         report_builder_report.delete()
 
         # reset the subscription
-        pro_with_rb_sub.cancel_subscription(web_user=self.admin_user.username)
+        pro_with_rb_sub.change_plan(DefaultProductPlan.get_default_plan())
 
     def tearDown(self):
         self.project.delete()
